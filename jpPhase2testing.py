@@ -45,18 +45,26 @@ X = scaler.transform(X)
 dfTrain2Numerical.is_copy = False
 dfTrain2Numerical[['UrlLength_Standardized','NumNumericChars_Standardized','NumDots_Standardized','SubdomainLevel_Standardized','PathLevel_Standardized','NumDash_Standardized','NumDashInHostname_Standardized','NumUnderscore_Standardized','NumPercent_Standardized','NumQueryComponents_Standardized','NumAmpersand_Standardized','NumHash_Standardized','HostnameLength_Standardized','PathLength_Standardized','QueryLength_Standardized','NumSensitiveWords_Standardized']]=X
 
-#### Phase 2 ####
-# Identify the features that are highly correlated
-dfTrain2Numerica= dfTrain2Numerical[['UrlLength_Standardized','NumNumericChars_Standardized','NumDots_Standardized','SubdomainLevel_Standardized','PathLevel_Standardized','NumDash_Standardized','NumDashInHostname_Standardized','NumUnderscore_Standardized','NumPercent_Standardized','NumQueryComponents_Standardized','NumAmpersand_Standardized','NumHash_Standardized','HostnameLength_Standardized','PathLength_Standardized','QueryLength_Standardized','NumSensitiveWords_Standardized']]
+############### Phase 2 ###############
+#### Identify the features that are highly correlated
 
-dfTrain2NumericalCorr=dfTrain2Numerical.corr()
-# dfTrain2[['AtSymbol','TildeSymbol','NoHttps','RandomString','IpAddress','DomainInSubdomains','DomainInPaths','HttpsInHostname','DoubleSlashInPath','EmbeddedBrandName','PctExtResourceUrls','ExtFavicon','InsecureForms','RelativeFormAction','ExtFormAction','RightClickDisabled','PopUpWindow','IframeOrFrame','MissingTitle','ImagesOnlyInForm']]
+# Must combine Numerical datafram with remining binary data in dfTrain2
+# Create new dataframe 'dfTrain2Numerical' from only standardized numerical data
+dfTrain2Numerical= dfTrain2Numerical[['UrlLength_Standardized','NumNumericChars_Standardized','NumDots_Standardized','SubdomainLevel_Standardized','PathLevel_Standardized','NumDash_Standardized','NumDashInHostname_Standardized','NumUnderscore_Standardized','NumPercent_Standardized','NumQueryComponents_Standardized','NumAmpersand_Standardized','NumHash_Standardized','HostnameLength_Standardized','PathLength_Standardized','QueryLength_Standardized','NumSensitiveWords_Standardized']]
 
+# Next, must combine dfTrain2Numerical with binary data still in dfTrain2
+dfTrain3= dfTrain2Numerical.join(dfTrain2[['AtSymbol','TildeSymbol','NoHttps','RandomString','IpAddress','DomainInSubdomains','DomainInPaths','HttpsInHostname','DoubleSlashInPath','EmbeddedBrandName','PctExtResourceUrls','ExtFavicon','InsecureForms','RelativeFormAction','ExtFormAction','RightClickDisabled','PopUpWindow','IframeOrFrame','MissingTitle','ImagesOnlyInForm']])
 
+# Should drop 'HttpsInHostname' as each case =0. Will mess up correlation otherwise
+dfTrain3=dfTrain3.drop('HttpsInHostname',axis=1)
 
+# Perform standard feature correlation on entirety of dfTrain3 by feature
+dfTrain3corr=dfTrain3.corr()
 
-
-
+# Perform manhattan measure
+from sklearn.metrics.pairwise import manhattan_distances
+distallpairs = manhattan_distances(dfTrain3.iloc[0:34],dfTrain3[0:34])
+print("Manhattan distance among all cases:\n", distallpairs)
 
 
 
