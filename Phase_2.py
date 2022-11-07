@@ -59,10 +59,32 @@ dfTrain3=dfTrain3.drop('HttpsInHostname',axis=1)
 # Perform standard feature correlation on entirety of dfTrain3 by feature
 dfTrain3corr=dfTrain3.corr()
 dfClass_labels = pd.DataFrame(dfTrain2['CLASS_LABEL'])
+dfTrainV2 = dfTrain3.join(dfClass_labels)
 # Perform manhattan measure
 from sklearn.metrics.pairwise import manhattan_distances
 distallpairs = manhattan_distances(dfTrain3.iloc[0:35],dfTrain3[0:35])
 print("Manhattan distance among all cases:\n", distallpairs)
+
+### Decision Tree  ###
+from sklearn.model_selection import train_test_split
+from sklearn import tree
+
+train, test = train_test_split(dfTrainV2, test_size=0.2, random_state=0)
+ 
+clf = tree.DecisionTreeClassifier(max_depth=7)
+#
+Y_train=train[['CLASS_LABEL']]
+X_train=train[['PathLevel_Standardized','NumDash_Standardized','TildeSymbol','PathLength_Standardized','UrlLength_Standardized']]
+
+Y_test=test[['CLASS_LABEL']]
+X_test=test[['PathLevel_Standardized','NumDash_Standardized','TildeSymbol','PathLength_Standardized','UrlLength_Standardized']]
+
+
+plt.figure(figsize=(20,30))
+tree.plot_tree(clf.fit(X_train, Y_train),filled=True,fontsize=8)
+plt.show()
+
+
 
 ### investigate the relationship between the target and the features##
 ## area under the curve, closer to one the more accurate ##
