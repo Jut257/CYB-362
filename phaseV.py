@@ -130,7 +130,8 @@ X_train, X_test, Y_train, Y_test = train_test_split(X, Y,test_size=0.50,shuffle=
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import plot_roc_curve
 from sklearn.ensemble import RandomForestClassifier
-rfclf=RandomForestClassifier(n_estimators=100, max_depth=8,random_state=1, max_samples=400)
+from sklearn import metrics
+rfclf=RandomForestClassifier(n_estimators=1000, max_depth=7,random_state=1, max_samples=400)
 rfclf.fit(X_train, Y_train)
 
 Y_test_predicted=rfclf.predict(X_test)
@@ -141,6 +142,11 @@ fig, ax = plt.subplots()
 plot_roc_curve(rfclf, X_test, Y_test,name='Forest', lw=1, ax=ax)
  
 plt.show()
+
+print("accuracy of model: ",metrics.accuracy_score(Y_test,Y_test_predicted))
+print(rfclf.get_params())
+print(rfclf.feature_importances_)
+
 
 ####### Support Vector Classification #####
 import pandas as pd
