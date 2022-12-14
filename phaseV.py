@@ -146,6 +146,12 @@ plt.show()
 print("accuracy of model: ",metrics.accuracy_score(Y_test,Y_test_predicted))
 print(rfclf.get_params())
 print(rfclf.feature_importances_)
+# ranking the importance of each feature
+imps = rfclf.feature_importances_
+sort_ind = np.argsort(imps)[::-1]
+feature_labels = dfTrain3.columns[1:]
+for f in range (X_train.shape[1]):
+    print("%2d) %-*s %f" % (f + 1, 30, feature_labels[sort_ind[f]], imps[sort_ind[f]]))
 
 
 ####### Support Vector Classification #####
@@ -226,11 +232,81 @@ print('Recall:', recall_score(Y, Y_pre))
 print('Confusion Matrix', confusion_matrix(Y, Y_pre))
 plot_confusion_matrix(clf, X, Y)
 
+X_dec = clf.decision_function(X)
+print(X_dec)
 # Performance metrics of the final model based on the C value found prior
 from sklearn import svm
 
 final_model.fit(X, Y)
 Y_pre=clf.predict(X)
+
+# ROC plot & AUC score of final model
+auc_score = roc_auc_score(Y,Y_pre)
+print(auc_score)
+plot_roc_curve(clf,X,Y)
+
+
+## cleaning & standardizing testing data ##
+testRowsWithNa = dfTest[ dfTest.isnull().any(axis=1) ]
+rowsToDrop = dfTest[ dfTest.isnull().sum(axis=1) > 1 ].index
+dfTest.drop(rowsToDrop, inplace=True)
+imputer = KNNImputer(n_neighbors=10)
+dfTest2 = pd.DataFrame(imputer.fit_transform(dfTest),columns = dfTest.columns)
+rows_to_drop=dfTest2[dfTest2['UrlLength']>500].index
+dfTest2.drop(rows_to_drop,inplace=True)
+rows_to_drop=dfTest2[dfTest2['NumNumericChars']>100].index
+dfTest2.drop(rows_to_drop,inplace=True)
+rows_to_drop=dfTest2[dfTest2['NumDash']>20].index
+dfTest2.drop(rows_to_drop,inplace=True)
+dfTest2Numerical = dfTrain2[['NumNumericChars','NumDots','SubdomainLevel','PathLevel','UrlLength','NumDash','NumDashInHostname',
+          'NumUnderscore','NumPercent','NumQueryComponents','NumAmpersand','NumHash','HostnameLength','PathLength','QueryLength','NumSensitiveWords']]
+clf= LocalOutlierFactor(n_neighbors=20)
+X=dfTest2Numerical.to_numpy()
+outlier_label=clf.fit_predict(X)
+rows_to_drop= dfTest2.iloc[clf.negative_outlier_factor_ < -1.30].index
+dfTest2.drop(rows_to_drop,inplace=True)
+dfTest2Numerical = dfTest2[['NumNumericChars','NumDots','SubdomainLevel','PathLevel','UrlLength','NumDash','NumDashInHostname','NumUnderscore','NumPercent','NumQueryComponents','NumAmpersand','NumHash','HostnameLength','PathLength','QueryLength','NumSensitiveWords']]
+X = dfTest2Numerical.to_numpy()
+scaler = StandardScaler()
+scaler.fit(X)
+X = scaler.transform(X)
+dfTest2Numerical.is_copy = False
+dfTest2Numerical[['NumNumericChars_Standardized','NumDots_Standardized','SubdomainLevel_Standardized','PathLevel_Standardized','UrlLength_Standardized','NumDash_Standardized','NumDashInHostname_Standardized','NumUnderscore_Standardized','NumPercent_Standardized','NumQueryComponents_Standardized','NumAmpersand_Standardized','NumHash_Standardized','HostnameLength_Standardized','PathLength_Standardized','QueryLength_Standardized','NumSensitiveWords_Standardized']]=X
+# dftest2 doesnt have CLASS_LABEL 
+print(dfTest2.columns)
+print(dfTrain3.columns)
+
+## test ##
+dfTest2Numstd= dfTest2Numerical[['UrlLength_Standardized','NumNumericChars_Standardized','NumDots_Standardized','SubdomainLevel_Standardized','PathLevel_Standardized','NumDash_Standardized','NumDashInHostname_Standardized','NumUnderscore_Standardized','NumPercent_Standardized','NumQueryComponents_Standardized','NumAmpersand_Standardized','NumHash_Standardized','HostnameLength_Standardized','PathLength_Standardized','QueryLength_Standardized','NumSensitiveWords_Standardized']]
+dfTest2Bin= dfTest2[['AtSymbol','TildeSymbol','NoHttps','RandomString','IpAddress','DomainInSubdomains','DomainInPaths','DoubleSlashInPath','EmbeddedBrandName','PctExtResourceUrls','ExtFavicon','InsecureForms','RelativeFormAction','ExtFormAction','RightClickDisabled','PopUpWindow','IframeOrFrame','MissingTitle','ImagesOnlyInForm']]
+dfTest3=dfTest2Bin.join(dfTest2Numstd)
+
+
+dfTestFeatures=dfTest3[['NumDash_Standardized','PathLength_Standardized','UrlLength_Standardized','PathLevel_Standardized','DomainInPaths','RandomString','InsecureForms']]
+Y=dfTrain3['CLASS_LABEL'].to_numpy()
+X=dfFeatures.to_numpy()
+final_model.fit(X,Y)
+Y_pre=clf.predict(X)
+
+X_dec = clf.decision_function(X)
+print(X_dec)
+
+### Pickling ###
+import base64
+import pickle
+pickle.dump(final_model,open('test','wb'))
+load_model = pickle.load(open('test','rb'))
+
+### export to csv ###
+ids = dfTrain2['id'].astype(int)
+# DF created to output the csv file in correct format
+final_predictions = pd.DataFrame(Y_pre,ids).rename_axis('Id')
+final_predictions.columns = ['Prediction']
+# must change file path 
+final_predictions.to_csv('C:/Users/jlusk/Downloads/test_export.csv')
+
+
+
 
 
 
