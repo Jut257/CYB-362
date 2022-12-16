@@ -18,8 +18,8 @@ from sklearn.neighbors import LocalOutlierFactor
 from sklearn.preprocessing import StandardScaler
 
 
-dfTest = pd.read_csv("Phishing_Legitimate_test_student.csv", na_values=['',' ','n/a'])
-dfTrain = pd.read_csv("Phishing_Legitimate_train_missing_data.csv", na_values=['',' ','n/a'])
+dfTest = pd.read_csv(r"C:/Users/jlusk/OneDrive/Desktop/Phishing_Legitimate_test_student.csv", na_values=['',' ','n/a'], encoding='utf8')
+dfTrain = pd.read_csv(r"C:/Users/jlusk/OneDrive/Desktop/Phishing_Legitimate_train_missing_data.csv", na_values=['',' ','n/a'], encoding=('utf8'))
 ################################# Phase 0 and 1 ####################################################
 trainRowsWithNa = dfTrain[ dfTrain.isnull().any(axis=1) ]
 rowsToDrop = dfTrain[ dfTrain.isnull().sum(axis=1) > 1 ].index
@@ -179,6 +179,53 @@ kf=KFold(n_splits=5,shuffle=True)
 tuned_parameters=[{'C':c_values,'kernel':kernel_values}]
 scores=['precision','recall','f1','roc_auc']
 
+from sklearn import svm
+avg_auc_test=[]
+avg_auc_train=[]
+avg_f1_test=[]
+avg_f1_train=[]
+
+for c in c_values: 
+    auc_train=[]
+    auc_test=[]
+    f1_train=[]
+    f1_test=[]
+
+    for train_index, test_index in kf.split(X):
+        X_train, X_test = X[train_index], X[test_index]
+        Y_train, Y_test = Y[train_index], Y[test_index]
+        clf = svm.SVC(C=c,kernel='rbf')
+        clf.fit(X_train, Y_train)
+        Y_test_pre=clf.predict(X_test)
+        Y_train_pre=clf.predict(X_train)
+        auc_train.append(roc_auc_score(Y_train,Y_train_pre))
+        auc_test.append(roc_auc_score(Y_test,Y_test_pre))
+        f1_test.append(f1_score(Y_test,Y_test_pre,pos_label=0))
+        f1_train.append(f1_score(Y_train,Y_train_pre,pos_label=0))
+
+    avg_auc_test.append(np.mean(auc_test))
+    avg_auc_train.append(np.mean(auc_train))
+    avg_f1_test.append(np.mean(f1_test))
+    avg_f1_train.append(np.mean(f1_train))
+ 
+plt.figure(figsize=(10,4))
+plt.plot(c_values,avg_auc_test,label='Testing Set')    
+plt.plot(c_values,avg_auc_train,label='Training Set')  
+plt.legend()
+plt.xticks(c_values,rotation='vertical')
+plt.grid(color='b', axis='x', linestyle='-.', linewidth=1,alpha=0.2)
+plt.xlabel('C')
+plt.ylabel('AUC')
+
+plt.figure(figsize=(10,4))
+plt.plot(c_values,avg_f1_test,label='Testing Set')    
+plt.plot(c_values,avg_f1_train,label='Training Set')  
+plt.legend()
+plt.xticks(c_values,rotation='vertical')
+plt.grid(color='b', axis='x', linestyle='-.', linewidth=1,alpha=0.2)
+plt.xlabel('C')
+plt.ylabel('F1')
+
 from sklearn.model_selection import GridSearchCV
 
 clf=GridSearchCV(estimator=base_model,
@@ -291,6 +338,8 @@ Y_pre=clf.predict(X)
 X_dec = clf.decision_function(X)
 print(X_dec)
 
+confMat = confusion_matrix(Y_test,Y_pre)
+
 ### Pickling ###
 import base64
 import pickle
@@ -305,8 +354,7 @@ final_predictions.columns = ['Prediction']
 # must change file path 
 final_predictions.to_csv('C:/Users/jlusk/Downloads/test_export.csv')
 
-
-
+############# TEST AREA ###############
 
 
 
